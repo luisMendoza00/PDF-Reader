@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Stygian Library</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f1f1;
+        }
+        .pdf-viewer {
+            display: flex;
+            gap: 0;
+            border: 1px solid #ccc;
+            max-width: 100%;
+            max-height: 100vh;
+            overflow-x: auto;
+        }
+        canvas {
+            background-color: white;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="pdf-viewer" id="pdf-viewer"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageNumber = parseInt(urlParams.get('page')) || 1;
+        const numPages = parseInt(urlParams.get('numPages')) || 1;
+        const pdfUrl = 'The_Stygian_Library.pdf';
+
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+        const renderPage = async (pdf, pageNum, container) => {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1 });
+            const scale = Math.min(
+                window.innerWidth / (viewport.width * numPages),
+                window.innerHeight / viewport.height
+            );
+            const scaledViewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+            container.appendChild(canvas);
+
+            const context = canvas.getContext('2d');
+            await page.render({ canvasContext: context, viewport: scaledViewport }).promise;
+        };
+
+        pdfjsLib.getDocument(pdfUrl).promise.then(async pdf => {
+            const container = document.getElementById('pdf-viewer');
+            
+            for (let i = 0; i < numPages && pageNumber + i <= pdf.numPages; i++) {
+                await renderPage(pdf, pageNumber + i, container);
+            }
+        });
+    </script>
+</body>
+</html>
